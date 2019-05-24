@@ -7,11 +7,11 @@ locals {
     namespace           = []
     environment         = []
     stage               = []
-    attributes          = []
+    attributes          = [""]
     tags_keys           = []
     tags_values         = []
     delimiter           = []
-    label_order         = []
+    label_order         = [""]
     regex_replace_chars = []
   }
 
@@ -56,21 +56,21 @@ locals {
   delimiter                    = var.delimiter != "-" ? var.delimiter : local.delimiter_context_or_default
 
   # Merge attributes
-  attributes = distinct(
-    compact(concat(var.attributes, local.context_local["attributes"])),
+  attributes = compact(
+    distinct(concat(var.attributes, local.context_local["attributes"])),
   )
 
   # Generate tags (don't include tags with empty values)
   generated_tags = zipmap(
     compact(
       [
-        "Name",
+        local.name != "" ? "Name" : "",
         local.namespace != "" ? "Namespace" : "",
         local.environment != "" ? "Environment" : "",
         local.stage != "" ? "Stage" : "",
       ],
     ),
-    compact([local.id, local.namespace, local.environment, local.stage]),
+    compact([local.id, local.namespace, local.environment, local.stage])
   )
 
   tags = merge(
@@ -83,16 +83,14 @@ locals {
   )
   tags_as_list_of_maps     = [data.null_data_source.tags_as_list_of_maps.*.outputs]
   label_order_default_list = ["namespace", "environment", "stage", "name", "attributes"]
-  label_order_context_list = distinct(compact(local.context_local["label_order"]))
-  label_order_final_list = [distinct(
-    compact(
-      coalescelist(
-        var.label_order,
-        local.label_order_context_list,
-        local.label_order_default_list,
-      ),
-    ),
-  )]
+  label_order_context_list = compact(distinct(local.context_local["label_order"]))
+  label_order_final_list = distinct(
+    coalescelist(
+      var.label_order,
+      local.label_order_context_list,
+      local.label_order_default_list,
+    )
+  )
   label_order_length = length(local.label_order_final_list)
 
   # Context of this label to pass to other label modules
